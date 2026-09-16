@@ -673,6 +673,18 @@ public struct BasicMacro: ExpressionMacro {
             return translatePrint(rest, numVars: &numVars, strVars: &strVars)
         }
 
+        // LINE INPUT
+        if trimmed.uppercased().hasPrefix("LINE INPUT") {
+            let rest = trimmed.dropFirst(10).trimmingCharacters(in: .whitespaces)
+            return translateInput(rest, isLineInput: true, numVars: &numVars, strVars: &strVars)
+        }
+
+        // INPUT
+        if trimmed.uppercased().hasPrefix("INPUT") {
+            let rest = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)
+            return translateInput(rest, isLineInput: false, numVars: &numVars, strVars: &strVars)
+        }
+
         // IF cond THEN ...
         if trimmed.uppercased().hasPrefix("IF") {
             let afterIf = trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces)
@@ -835,6 +847,82 @@ public struct BasicMacro: ExpressionMacro {
             return "print(\(partsJoined), separator: \"\", terminator: \"\")"
         } else {
             return "print(\(partsJoined), separator: \"\")"
+        }
+    }
+
+    private static func translateInput(
+        _ code: String,
+        isLineInput: Bool,
+        numVars: inout Set<String>,
+        strVars: inout Set<String>
+    ) -> String {
+        var rest = code.trimmingCharacters(in: .whitespaces)
+        var prompt = "? "
+        var appendQuestionMark = true
+
+        if rest.hasPrefix("\"") {
+            let afterFirstQuote = rest.dropFirst()
+            if let closingQuoteIdx = afterFirstQuote.firstIndex(of: "\"") {
+                let promptText = String(afterFirstQuote[..<closingQuoteIdx])
+                let afterQuote = afterFirstQuote[afterFirstQuote.index(after: closingQuoteIdx)...].trimmingCharacters(in: .whitespaces)
+                if afterQuote.hasPrefix(";") {
+                    appendQuestionMark = true
+                    rest = String(afterQuote.dropFirst()).trimmingCharacters(in: .whitespaces)
+                } else if afterQuote.hasPrefix(",") {
+                    appendQuestionMark = false
+                    rest = String(afterQuote.dropFirst()).trimmingCharacters(in: .whitespaces)
+                } else {
+                    rest = afterQuote
+                }
+                prompt = promptText + (appendQuestionMark ? "? " : "")
+            }
+        }
+
+        let varNames = rest.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        if varNames.isEmpty {
+            return "print(\"\(prompt)\", terminator: \"\")"
+        }
+
+        if isLineInput || varNames.count == 1 {
+            let rawVar = varNames[0]
+            let (v, isStr) = normalizeVarName(rawVar)
+            if isStr {
+                strVars.insert(v)
+                return """
+                print(\"\(prompt)\", terminator: \"\")
+                if let _in = readLine() {
+                    \(v) = _in
+                }
+                """
+            } else {
+                numVars.insert(v)
+                return """
+                print(\"\(prompt)\", terminator: \"\")
+                if let _in = readLine(), let _val = Double(_in.trimmingCharacters(in: .whitespaces)) {
+                    \(v) = _val
+                }
+                """
+            }
+        } else {
+            var assigns: [String] = []
+            for (idx, rawVar) in varNames.enumerated() {
+                let (v, isStr) = normalizeVarName(rawVar)
+                if isStr {
+                    strVars.insert(v)
+                    assigns.append("if _parts.count > \(idx) { \(v) = _parts[\(idx)] }")
+                } else {
+                    numVars.insert(v)
+                    assigns.append("if _parts.count > \(idx), let _v = Double(_parts[\(idx)]) { \(v) = _v }")
+                }
+            }
+            let assignsJoined = assigns.joined(separator: "\n    ")
+            return """
+            print(\"\(prompt)\", terminator: \"\")
+            if let _in = readLine() {
+                let _parts = _in.components(separatedBy: \",\").map { $0.trimmingCharacters(in: .whitespaces) }
+                \(assignsJoined)
+            }
+            """
         }
     }
 }

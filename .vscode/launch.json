@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "sweetpad-lldb",
+            "request": "launch",
+            "name": "Build and Launch (SweetPad)",
+            "preLaunchTask": "sweetpad: launch",
+            "stopAll": true
+        },
+        {
+            "type": "sweetpad-lldb",
+            "request": "attach",
+            "name": "Attach to Running App (SweetPad)",
+            "description": "Use this if the app is already running to avoid rebuild"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:GotoSwift}",
+            "name": "Debug GotoSwiftClient",
+            "target": "GotoSwiftClient",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug GotoSwiftClient"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:GotoSwift}",
+            "name": "Release GotoSwiftClient",
+            "target": "GotoSwiftClient",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release GotoSwiftClient"
+        }
+    ]
+}

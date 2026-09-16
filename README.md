@@ -41,6 +41,7 @@ _loop: while true {
 - **`#basic` (Vintage BASIC Syntax)**:
   - Write vintage BASIC code directly inside a multiline string literal.
   - Supports `LET`, `PRINT` (and the legendary `?` shorthand), `IF ... THEN GOTO`, `GOSUB`, `RETURN`, and `END`.
+  - **Console Input (`INPUT` & `LINE INPUT`)**: Read strings or numbers interactively from the terminal, with support for prompts (`INPUT "NAME: "; NAME$`) and comma-separated multiple values!
   - **`FOR ... NEXT` Loops**: Full support for loops, `STEP` increments/decrements (including negative step countdowns), and nested loops!
   - **Vintage Line Overwrite & Deletion**: Enter the same line number to overwrite, or a line number with empty content to delete it.
 

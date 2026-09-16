@@ -343,5 +343,62 @@ final class GotoSwiftTests: XCTestCase {
         30 END
         """)
     }
+
+    func testBasicInputExpansion() throws {
+        #if canImport(GotoSwiftMacros)
+        assertMacroExpansion(
+            #"""
+            #basic("""
+            10 INPUT "NAME: ", NAME$
+            20 INPUT "AGE: "; AGE
+            30 LINE INPUT ADDR$
+            40 END
+            """)
+            """#,
+            expandedSource: #"""
+            {
+                var AGE: Double = 0
+                var ADDR_str: String = ""
+                var NAME_str: String = ""
+                var _line: Int = 10
+                var _callStack: [Int] = []
+                _callStack.removeAll()
+                _loop: while true {
+                    switch _line {
+                case 10:
+                    print("NAME: ", terminator: "")
+                    if let _in = readLine() {
+                        NAME_str = _in
+                    }
+                    _line = 20
+                    continue _loop
+                case 20:
+                    print("AGE: ? ", terminator: "")
+                    if let _in = readLine(), let _val = Double(_in.trimmingCharacters(in: .whitespaces)) {
+                        AGE = _val
+                    }
+                    _line = 30
+                    continue _loop
+                case 30:
+                    print("? ", terminator: "")
+                    if let _in = readLine() {
+                        ADDR_str = _in
+                    }
+                    _line = 40
+                    continue _loop
+                case 40:
+                    break _loop
+                    default:
+                        break _loop
+                    }
+                }
+            }()
+            """#,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
 }
 
