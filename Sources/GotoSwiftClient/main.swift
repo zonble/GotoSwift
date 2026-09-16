@@ -44,3 +44,25 @@ print("\n=== Testing #basic ===")
 100 PRINT "HELLO FROM BASIC SUBROUTINE!"
 110 RETURN
 """)
+
+print("\n=== Testing #basic FOR ... NEXT Loops ===")
+
+#basic("""
+10 PRINT "Counting up with FOR I = 1 TO 3:"
+20 FOR I = 1 TO 3
+30 PRINT "  -> I = "; I
+40 NEXT I
+50 PRINT "Counting down with STEP -2:"
+60 FOR J = 5 TO 1 STEP -2
+70 PRINT "  -> J = "; J
+80 NEXT J
+90 PRINT "Nested FOR loops:"
+100 FOR A = 1 TO 2
+110 FOR B = 1 TO 2
+120 PRINT "  -> A="; A; " B="; B
+130 NEXT B
+140 NEXT A
+150 PRINT "ALL FOR LOOPS COMPLETED!"
+160 END
+""")
+

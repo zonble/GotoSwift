@@ -288,5 +288,17 @@ final class GotoSwiftTests: XCTestCase {
         40 END
         """)
     }
+
+    func testRuntimeBasicForNextLoop() {
+        #basic("""
+        10 FOR I = 1 TO 3
+        20 PRINT "FOR I="; I
+        30 NEXT I
+        40 FOR J = 5 TO 1 STEP -2
+        50 PRINT "FOR J="; J
+        60 NEXT J
+        70 END
+        """)
+    }
 }
 

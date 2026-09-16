@@ -29,6 +29,14 @@ struct BasicLine {
     let rawCode: String
 }
 
+struct ForLoopRecord {
+    let varName: String
+    let forLine: Int
+    let bodyLine: Int
+    var nextLine: Int
+    var exitLine: Int
+}
+
 // MARK: - GotoScopeMacro
 
 public struct GotoScopeMacro: ExpressionMacro {
@@ -387,6 +395,59 @@ public struct BasicMacro: ExpressionMacro {
         var numVariables = Set<String>()
         var strVariables = Set<String>()
 
+        // Pre-scan for FOR ... NEXT pairings
+        var forLoopsByForLine: [Int: ForLoopRecord] = [:]
+        var forLoopsByNextLine: [Int: ForLoopRecord] = [:]
+        var forStack: [(varName: String, forLine: Int, bodyLine: Int)] = []
+
+        for (index, bLine) in lines.enumerated() {
+            let trimmed = bLine.rawCode.trimmingCharacters(in: .whitespaces)
+            let nextLineNum: Int = (index + 1 < lines.count) ? lines[index + 1].number : 0
+            if trimmed.uppercased().hasPrefix("FOR ") {
+                let afterFor = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+                if let eqIdx = afterFor.firstIndex(of: "=") {
+                    let v = String(afterFor[..<eqIdx]).trimmingCharacters(in: .whitespaces)
+                    let (swiftVar, _) = normalizeVarName(v)
+                    numVariables.insert(swiftVar)
+                    forStack.append((varName: swiftVar, forLine: bLine.number, bodyLine: nextLineNum))
+                }
+            } else if trimmed.uppercased() == "NEXT" || trimmed.uppercased().hasPrefix("NEXT ") {
+                let afterNext = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+                let requestedVar = afterNext.isEmpty ? nil : normalizeVarName(afterNext).0
+
+                if let top = forStack.popLast() {
+                    if let req = requestedVar, req != top.varName {
+                        context.diagnose(
+                            Diagnostic(
+                                node: Syntax(macroNode),
+                                message: GotoDiagnostic(message: "Mismatched NEXT \(req), expected NEXT \(top.varName) on line \(bLine.number)")
+                            )
+                        )
+                    }
+                    let exitLine = nextLineNum
+                    let record = ForLoopRecord(varName: top.varName, forLine: top.forLine, bodyLine: top.bodyLine, nextLine: bLine.number, exitLine: exitLine)
+                    forLoopsByForLine[top.forLine] = record
+                    forLoopsByNextLine[bLine.number] = record
+                } else {
+                    context.diagnose(
+                        Diagnostic(
+                            node: Syntax(macroNode),
+                            message: GotoDiagnostic(message: "NEXT without FOR on line \(bLine.number)")
+                        )
+                    )
+                }
+            }
+        }
+
+        for remaining in forStack {
+            context.diagnose(
+                Diagnostic(
+                    node: Syntax(macroNode),
+                    message: GotoDiagnostic(message: "FOR without matching NEXT for variable '\(remaining.varName)' on line \(remaining.forLine)")
+                )
+            )
+        }
+
         // Generate case bodies
         var caseBlocks: [String] = []
 
@@ -397,6 +458,8 @@ public struct BasicMacro: ExpressionMacro {
                 currentLine: bLine.number,
                 nextLineNumber: nextLineNumber,
                 definedLineNumbers: definedLineNumbers,
+                forLoopsByForLine: forLoopsByForLine,
+                forLoopsByNextLine: forLoopsByNextLine,
                 macroNode: macroNode,
                 context: context,
                 numVars: &numVariables,
@@ -434,6 +497,10 @@ public struct BasicMacro: ExpressionMacro {
         for v in numVariables.sorted() {
             hoistedDecls.append("var \(v): Double = 0")
         }
+        for record in forLoopsByForLine.values.sorted(by: { $0.varName < $1.varName }) {
+            hoistedDecls.append("var _for_\(record.varName)_end: Double = 0")
+            hoistedDecls.append("var _for_\(record.varName)_step: Double = 1")
+        }
         for v in strVariables.sorted() {
             hoistedDecls.append("var \(v): String = \"\"")
         }
@@ -463,6 +530,8 @@ public struct BasicMacro: ExpressionMacro {
         currentLine: Int,
         nextLineNumber: Int?,
         definedLineNumbers: Set<Int>,
+        forLoopsByForLine: [Int: ForLoopRecord],
+        forLoopsByNextLine: [Int: ForLoopRecord],
         macroNode: some FreestandingMacroExpansionSyntax,
         context: some MacroExpansionContext,
         numVars: inout Set<String>,
@@ -524,6 +593,55 @@ public struct BasicMacro: ExpressionMacro {
             return "break _loop"
         }
 
+        // FOR var = start TO end [STEP step]
+        if trimmed.uppercased().hasPrefix("FOR ") {
+            if let record = forLoopsByForLine[currentLine] {
+                let afterFor = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+                if let eqIdx = afterFor.firstIndex(of: "=") {
+                    let rhs = afterFor[afterFor.index(after: eqIdx)...]
+                    if let toRange = rhs.range(of: " TO ", options: .caseInsensitive) {
+                        let startPart = String(rhs[..<toRange.lowerBound]).trimmingCharacters(in: .whitespaces)
+                        let afterTo = rhs[toRange.upperBound...]
+                        var endPart = String(afterTo).trimmingCharacters(in: .whitespaces)
+                        var stepPart = "1"
+                        if let stepRange = afterTo.range(of: " STEP ", options: .caseInsensitive) {
+                            endPart = String(afterTo[..<stepRange.lowerBound]).trimmingCharacters(in: .whitespaces)
+                            stepPart = String(afterTo[stepRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+                        }
+                        let startExpr = translateExpr(startPart, numVars: &numVars, strVars: &strVars)
+                        let endExpr = translateExpr(endPart, numVars: &numVars, strVars: &strVars)
+                        let stepExpr = translateExpr(stepPart, numVars: &numVars, strVars: &strVars)
+                        let v = record.varName
+                        let exitLine = record.exitLine
+                        return """
+                        \(v) = \(startExpr)
+                        _for_\(v)_end = \(endExpr)
+                        _for_\(v)_step = \(stepExpr)
+                        if (_for_\(v)_step > 0 && \(v) > _for_\(v)_end) || (_for_\(v)_step < 0 && \(v) < _for_\(v)_end) {
+                            _line = \(exitLine)
+                            continue _loop
+                        }
+                        """
+                    }
+                }
+            }
+        }
+
+        // NEXT [var]
+        if trimmed.uppercased() == "NEXT" || trimmed.uppercased().hasPrefix("NEXT ") {
+            if let record = forLoopsByNextLine[currentLine] {
+                let v = record.varName
+                let bodyLine = record.bodyLine
+                return """
+                \(v) += _for_\(v)_step
+                if (_for_\(v)_step > 0 && \(v) <= _for_\(v)_end) || (_for_\(v)_step < 0 && \(v) >= _for_\(v)_end) {
+                    _line = \(bodyLine)
+                    continue _loop
+                }
+                """
+            }
+        }
+
         // PRINT
         if trimmed.uppercased().hasPrefix("PRINT") {
             let rest = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)
@@ -546,6 +664,8 @@ public struct BasicMacro: ExpressionMacro {
                     currentLine: currentLine,
                     nextLineNumber: nextLineNumber,
                     definedLineNumbers: definedLineNumbers,
+                    forLoopsByForLine: forLoopsByForLine,
+                    forLoopsByNextLine: forLoopsByNextLine,
                     macroNode: macroNode,
                     context: context,
                     numVars: &numVars,
