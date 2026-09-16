@@ -618,6 +618,83 @@ public struct BasicMacro: ExpressionMacro {
             return #"print("\u{001B}[H", terminator: "")"#
         }
 
+        // SHOW (Canvas render)
+        if trimmed.uppercased() == "SHOW" {
+            return "showCanvas()"
+        }
+
+        // SCREEN [width], [height]
+        if trimmed.uppercased().hasPrefix("SCREEN") {
+            let rest = trimmed.dropFirst(6).trimmingCharacters(in: .whitespaces)
+            if rest.isEmpty {
+                return "screen()"
+            }
+            let parts = rest.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+            if parts.count >= 2 {
+                let wExpr = translateExpr(parts[0], numVars: &numVars, strVars: &strVars)
+                let hExpr = translateExpr(parts[1], numVars: &numVars, strVars: &strVars)
+                return "screen(width: Int(\(wExpr)), height: Int(\(hExpr)))"
+            } else if parts.count == 1 {
+                let modeExpr = translateExpr(parts[0], numVars: &numVars, strVars: &strVars)
+                return "screen(width: Int(\(modeExpr)) == 2 ? 80 : 80, height: Int(\(modeExpr)) == 2 ? 50 : 50)"
+            }
+        }
+
+        // PSET (x, y)
+        if trimmed.uppercased().hasPrefix("PSET") {
+            let rest = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+            let (xExpr, yExpr) = parseCoordPair(rest, numVars: &numVars, strVars: &strVars)
+            return "pset(Int(\(xExpr)), Int(\(yExpr)))"
+        }
+
+        // PRESET (x, y)
+        if trimmed.uppercased().hasPrefix("PRESET") {
+            let rest = trimmed.dropFirst(6).trimmingCharacters(in: .whitespaces)
+            let (xExpr, yExpr) = parseCoordPair(rest, numVars: &numVars, strVars: &strVars)
+            return "preset(Int(\(xExpr)), Int(\(yExpr)))"
+        }
+
+        // CIRCLE (cx, cy), r
+        if trimmed.uppercased().hasPrefix("CIRCLE") {
+            let rest = trimmed.dropFirst(6).trimmingCharacters(in: .whitespaces)
+            if let closeIdx = rest.firstIndex(of: ")") {
+                let coordPart = String(rest[..<closeIdx]).trimmingCharacters(in: .whitespaces)
+                let afterCoord = rest[rest.index(after: closeIdx)...].trimmingCharacters(in: .whitespaces)
+                let (cxExpr, cyExpr) = parseCoordPair(coordPart, numVars: &numVars, strVars: &strVars)
+                var rStr = afterCoord
+                if rStr.hasPrefix(",") { rStr = String(rStr.dropFirst()).trimmingCharacters(in: .whitespaces) }
+                let rParts = rStr.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                let rExpr = translateExpr(rParts.first ?? "10", numVars: &numVars, strVars: &strVars)
+                return "drawCircle(Int(\(cxExpr)), Int(\(cyExpr)), Int(\(rExpr)))"
+            }
+        }
+
+        // LINE (x1, y1)-(x2, y2) [, [color] [, B | BF]]
+        if trimmed.uppercased().hasPrefix("LINE") {
+            let rest = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+            if let dashIdx = rest.firstIndex(of: "-") {
+                let firstPart = String(rest[..<dashIdx]).trimmingCharacters(in: .whitespaces)
+                let secondPart = String(rest[rest.index(after: dashIdx)...]).trimmingCharacters(in: .whitespaces)
+
+                let (x1Expr, y1Expr) = parseCoordPair(firstPart, numVars: &numVars, strVars: &strVars)
+
+                // secondPart contains "(x2, y2)" followed optionally by ", color, B" etc.
+                if let closeIdx = secondPart.firstIndex(of: ")") {
+                    let coord2 = String(secondPart[..<closeIdx]).trimmingCharacters(in: .whitespaces)
+                    let (x2Expr, y2Expr) = parseCoordPair(coord2, numVars: &numVars, strVars: &strVars)
+
+                    let extra = String(secondPart[secondPart.index(after: closeIdx)...]).trimmingCharacters(in: .whitespaces).uppercased()
+                    if extra.contains("BF") {
+                        return "drawBox(Int(\(x1Expr)), Int(\(y1Expr)), Int(\(x2Expr)), Int(\(y2Expr)), fill: true)"
+                    } else if extra.contains("B") {
+                        return "drawBox(Int(\(x1Expr)), Int(\(y1Expr)), Int(\(x2Expr)), Int(\(y2Expr)), fill: false)"
+                    } else {
+                        return "drawLine(Int(\(x1Expr)), Int(\(y1Expr)), Int(\(x2Expr)), Int(\(y2Expr)))"
+                    }
+                }
+            }
+        }
+
         // FOR var = start TO end [STEP step]
         if trimmed.uppercased().hasPrefix("FOR ") {
             if let record = forLoopsByForLine[currentLine] {
@@ -932,6 +1009,18 @@ public struct BasicMacro: ExpressionMacro {
             }
             """
         }
+    }
+
+    private static func parseCoordPair(_ raw: String, numVars: inout Set<String>, strVars: inout Set<String>) -> (String, String) {
+        var clean = raw.trimmingCharacters(in: .whitespaces)
+        if clean.hasPrefix("(") { clean = String(clean.dropFirst()) }
+        if clean.hasSuffix(")") { clean = String(clean.dropLast()) }
+        let parts = clean.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+        let xStr = parts.count > 0 ? parts[0] : "0"
+        let yStr = parts.count > 1 ? parts[1] : "0"
+        let xExpr = translateExpr(xStr, numVars: &numVars, strVars: &strVars)
+        let yExpr = translateExpr(yStr, numVars: &numVars, strVars: &strVars)
+        return (xExpr, yExpr)
     }
 }
 

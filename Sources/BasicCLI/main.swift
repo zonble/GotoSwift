@@ -295,6 +295,84 @@ class BasicInterpreter {
             return
         }
 
+        // SHOW
+        if upper == "SHOW" {
+            showCanvas()
+            return
+        }
+
+        // SCREEN [w], [h]
+        if upper.hasPrefix("SCREEN") {
+            let rest = trimmed.dropFirst(6).trimmingCharacters(in: .whitespaces)
+            let parts = rest.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+            if parts.count >= 2 {
+                let w = Int(eval(parts[0]).asDouble)
+                let h = Int(eval(parts[1]).asDouble)
+                screen(width: w > 0 ? w : 80, height: h > 0 ? h : 50)
+            } else if parts.count == 1 {
+                screen(width: 80, height: 50)
+            } else {
+                screen()
+            }
+            return
+        }
+
+        // PSET (x, y)
+        if upper.hasPrefix("PSET") {
+            let rest = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+            let (x, y) = parseCoords(rest)
+            pset(x, y)
+            return
+        }
+
+        // PRESET (x, y)
+        if upper.hasPrefix("PRESET") {
+            let rest = trimmed.dropFirst(6).trimmingCharacters(in: .whitespaces)
+            let (x, y) = parseCoords(rest)
+            preset(x, y)
+            return
+        }
+
+        // CIRCLE (cx, cy), r
+        if upper.hasPrefix("CIRCLE") {
+            let rest = trimmed.dropFirst(6).trimmingCharacters(in: .whitespaces)
+            if let closeIdx = rest.firstIndex(of: ")") {
+                let coordPart = String(rest[..<closeIdx]).trimmingCharacters(in: .whitespaces)
+                let afterCoord = rest[rest.index(after: closeIdx)...].trimmingCharacters(in: .whitespaces)
+                let (cx, cy) = parseCoords(coordPart)
+                var rStr = afterCoord
+                if rStr.hasPrefix(",") { rStr = String(rStr.dropFirst()).trimmingCharacters(in: .whitespaces) }
+                let rParts = rStr.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+                let r = Int(eval(rParts.first ?? "10").asDouble)
+                drawCircle(cx, cy, r)
+            }
+            return
+        }
+
+        // LINE (x1, y1)-(x2, y2) [, [color] [, B | BF]]
+        if upper.hasPrefix("LINE") {
+            let rest = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+            if let dashIdx = rest.firstIndex(of: "-") {
+                let firstPart = String(rest[..<dashIdx]).trimmingCharacters(in: .whitespaces)
+                let secondPart = String(rest[rest.index(after: dashIdx)...]).trimmingCharacters(in: .whitespaces)
+
+                let (x1, y1) = parseCoords(firstPart)
+                if let closeIdx = secondPart.firstIndex(of: ")") {
+                    let coord2 = String(secondPart[..<closeIdx]).trimmingCharacters(in: .whitespaces)
+                    let (x2, y2) = parseCoords(coord2)
+                    let extra = String(secondPart[secondPart.index(after: closeIdx)...]).trimmingCharacters(in: .whitespaces).uppercased()
+                    if extra.contains("BF") {
+                        drawBox(x1, y1, x2, y2, fill: true)
+                    } else if extra.contains("B") {
+                        drawBox(x1, y1, x2, y2, fill: false)
+                    } else {
+                        drawLine(x1, y1, x2, y2)
+                    }
+                }
+            }
+            return
+        }
+
         // GOTO
         if upper.hasPrefix("GOTO") {
             let targetStr = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
@@ -601,6 +679,16 @@ class BasicInterpreter {
                 }
             }
         }
+    }
+
+    func parseCoords(_ raw: String) -> (Int, Int) {
+        var clean = raw.trimmingCharacters(in: .whitespaces)
+        if clean.hasPrefix("(") { clean = String(clean.dropFirst()) }
+        if clean.hasSuffix(")") { clean = String(clean.dropLast()) }
+        let parts = clean.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+        let xVal = parts.count > 0 ? Int(eval(parts[0]).asDouble) : 0
+        let yVal = parts.count > 1 ? Int(eval(parts[1]).asDouble) : 0
+        return (xVal, yVal)
     }
 
     // MARK: - REPL Loop

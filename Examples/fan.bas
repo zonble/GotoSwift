@@ -1,0 +1,16 @@
+10 REM ===================================================
+20 REM   VINTAGE BASIC STRING ART (FAN & ENVELOPE DEMO)
+30 REM   GOTOSWIFT GRAPHICS (1983 - 2026)
+40 REM ===================================================
+50 SCREEN 80, 48
+60 CLS
+70 ? "DRAWING RETRO STRING ART FAN..."
+80 FOR X = 0 TO 78 STEP 4
+90   LINE (0, 0)-(X, 46)
+100 NEXT X
+110 FOR Y = 0 TO 46 STEP 4
+120  LINE (0, 0)-(78, Y)
+130 NEXT Y
+140 SHOW
+150 ? "RETRO BASIC GEOMETRY COMPLETE! ✨"
+160 END

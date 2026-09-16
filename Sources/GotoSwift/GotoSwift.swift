@@ -75,3 +75,38 @@ public func cls() {
 public func home() {
     print("\u{001B}[H", terminator: "")
 }
+
+/// Initializes or resizes the global graphics canvas (default 80x50).
+public func screen(width: Int = 80, height: Int = 50) {
+    globalBasicCanvas = BasicCanvas(width: width, height: height)
+}
+
+/// Plots a pixel on the graphics canvas.
+public func pset(_ x: Int, _ y: Int) {
+    globalBasicCanvas.pset(x: x, y: y, value: true)
+}
+
+/// Clears a pixel on the graphics canvas.
+public func preset(_ x: Int, _ y: Int) {
+    globalBasicCanvas.preset(x: x, y: y)
+}
+
+/// Draws a line between (x1, y1) and (x2, y2) on the graphics canvas.
+public func drawLine(_ x1: Int, _ y1: Int, _ x2: Int, _ y2: Int) {
+    globalBasicCanvas.line(x1: x1, y1: y1, x2: x2, y2: y2, value: true)
+}
+
+/// Draws a rectangle or filled box on the graphics canvas.
+public func drawBox(_ x1: Int, _ y1: Int, _ x2: Int, _ y2: Int, fill: Bool = false) {
+    globalBasicCanvas.box(x1: x1, y1: y1, x2: x2, y2: y2, fill: fill, value: true)
+}
+
+/// Draws a circle on the graphics canvas.
+public func drawCircle(_ cx: Int, _ cy: Int, _ r: Int) {
+    globalBasicCanvas.circle(cx: cx, cy: cy, r: r, value: true)
+}
+
+/// Renders the graphics canvas to stdout using Unicode Braille Patterns.
+public func showCanvas() {
+    print(globalBasicCanvas.render(), terminator: "")
+}

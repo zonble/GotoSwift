@@ -43,6 +43,7 @@ _loop: while true {
   - Write vintage BASIC code directly inside a multiline string literal.
   - Supports `LET`, `PRINT` (and the legendary `?` shorthand), `IF ... THEN GOTO`, `GOSUB`, `RETURN`, and `END`.
   - **Screen Control (`CLS` & `HOME`)**: Authentic 1980s screen clearing (`CLS`) and cursor resetting (`HOME`).
+  - **Retro Terminal Graphics (`SCREEN`, `LINE`, `CIRCLE`, `PSET`, `PRESET`, `SHOW`)**: High-resolution Bresenham vector graphics rendered via Unicode Braille Patterns (`LINE (x1, y1)-(x2, y2)`, `LINE -(x2, y2), , B` for boxes, `BF` for filled boxes, `CIRCLE (cx, cy), r`).
   - **Console Input (`INPUT` & `LINE INPUT`)**: Read strings or numbers interactively from the terminal, with support for prompts (`INPUT "NAME: "; NAME$`) and comma-separated multiple values!
   - **`FOR ... NEXT` Loops**: Full support for loops, `STEP` increments/decrements (including negative step countdowns), and nested loops!
   - **Vintage Line Overwrite & Deletion**: Enter the same line number to overwrite, or a line number with empty content to delete it.
@@ -134,7 +135,6 @@ import GotoSwift
 """)
 ```
 
-Output:
 ```text
       *
      ***
@@ -146,6 +146,30 @@ Output:
       |
       |
 MERRY CHRISTMAS IN RETRO BASIC & SWIFT! 🎄
+```
+
+### 4. 1980s String Art Fan with Bresenham Vector Graphics! 🎨
+
+Remember drawing fans with `FOR` loops and `LINE`? GotoSwift renders vector graphics straight into your terminal using Unicode Braille Patterns:
+
+```swift
+#basic("""
+10 SCREEN 80, 48
+20 CLS
+30 FOR X = 0 TO 78 STEP 4
+40   LINE (0, 0)-(X, 46)
+50 NEXT X
+60 FOR Y = 0 TO 46 STEP 4
+70   LINE (0, 0)-(78, Y)
+80 NEXT Y
+90 SHOW
+100 END
+""")
+```
+
+Or run the bundled demo file directly:
+```bash
+swift run basic Examples/fan.bas
 ```
 
 ---
