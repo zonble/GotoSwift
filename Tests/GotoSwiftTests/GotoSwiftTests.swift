@@ -400,5 +400,45 @@ final class GotoSwiftTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
+
+    func testBasicClsExpansion() throws {
+        #if canImport(GotoSwiftMacros)
+        assertMacroExpansion(
+            #"""
+            #basic("""
+            10 CLS
+            20 HOME
+            30 END
+            """)
+            """#,
+            expandedSource: #"""
+            {
+                var _line: Int = 10
+                var _callStack: [Int] = []
+                _callStack.removeAll()
+                _loop: while true {
+                    switch _line {
+                case 10:
+                    print("\u{001B}[2J\u{001B}[H", terminator: "")
+                    _line = 20
+                    continue _loop
+                case 20:
+                    print("\u{001B}[H", terminator: "")
+                    _line = 30
+                    continue _loop
+                case 30:
+                    break _loop
+                    default:
+                        break _loop
+                    }
+                }
+            }()
+            """#,
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
 }
 

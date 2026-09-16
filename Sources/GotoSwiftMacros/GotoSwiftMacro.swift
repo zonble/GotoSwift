@@ -610,6 +610,14 @@ public struct BasicMacro: ExpressionMacro {
             return "break _loop"
         }
 
+        // CLS / HOME
+        if trimmed.uppercased() == "CLS" {
+            return #"print("\u{001B}[2J\u{001B}[H", terminator: "")"#
+        }
+        if trimmed.uppercased() == "HOME" {
+            return #"print("\u{001B}[H", terminator: "")"#
+        }
+
         // FOR var = start TO end [STEP step]
         if trimmed.uppercased().hasPrefix("FOR ") {
             if let record = forLoopsByForLine[currentLine] {

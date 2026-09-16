@@ -65,3 +65,13 @@ public func line(_ line: Int) {
 public func L(_ line: Int) {
     fatalError("L(\(line)) must be used inside #gotoScope")
 }
+
+/// Clears the terminal screen and resets cursor position (ANSI escape code `\u{001B}[2J\u{001B}[H`).
+public func cls() {
+    print("\u{001B}[2J\u{001B}[H", terminator: "")
+}
+
+/// Moves the cursor to home position `(1, 1)` without clearing entire screen (`\u{001B}[H`).
+public func home() {
+    print("\u{001B}[H", terminator: "")
+}

@@ -283,6 +283,18 @@ class BasicInterpreter {
             return
         }
 
+        // CLS / HOME
+        if upper == "CLS" {
+            print("\u{001B}[2J\u{001B}[H", terminator: "")
+            fflush(stdout)
+            return
+        }
+        if upper == "HOME" {
+            print("\u{001B}[H", terminator: "")
+            fflush(stdout)
+            return
+        }
+
         // GOTO
         if upper.hasPrefix("GOTO") {
             let targetStr = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
@@ -662,7 +674,9 @@ class BasicInterpreter {
                   LIST            - Display program lines
                   LOAD "file.bas" - Load program from disk
                   SAVE "file.bas" - Save program to disk
-                  FILES           - List .bas files in current directory
+                  FILES / DIR     - List .bas files in current directory
+                  CLS             - Clear screen
+                  HOME            - Move cursor to top-left
                   NEW             - Clear program and memory
                   CLEAR           - Clear variables only
                   EXIT / QUIT     - Exit REPL

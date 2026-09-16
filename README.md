@@ -36,11 +36,13 @@ _loop: while true {
   - **Authentic 1980s Line Editing**:
     - Re-declaring an existing line number **overwrites** the previous definition.
     - Declaring an empty line number **deletes** that line from the program!
+  - **Screen Control (`CLS` & `HOME`)**: Native `cls()` and `home()` helper functions to clear the terminal screen or reset cursor position.
   - **Compile-Time Diagnostics**: Jumping to a non-existent line number emits a compile error directly in Xcode / Swift compiler!
 
 - **`#basic` (Vintage BASIC Syntax)**:
   - Write vintage BASIC code directly inside a multiline string literal.
   - Supports `LET`, `PRINT` (and the legendary `?` shorthand), `IF ... THEN GOTO`, `GOSUB`, `RETURN`, and `END`.
+  - **Screen Control (`CLS` & `HOME`)**: Authentic 1980s screen clearing (`CLS`) and cursor resetting (`HOME`).
   - **Console Input (`INPUT` & `LINE INPUT`)**: Read strings or numbers interactively from the terminal, with support for prompts (`INPUT "NAME: "; NAME$`) and comma-separated multiple values!
   - **`FOR ... NEXT` Loops**: Full support for loops, `STEP` increments/decrements (including negative step countdowns), and nested loops!
   - **Vintage Line Overwrite & Deletion**: Enter the same line number to overwrite, or a line number with empty content to delete it.
