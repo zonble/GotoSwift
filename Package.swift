@@ -17,6 +17,10 @@ let package = Package(
             name: "GotoSwiftClient",
             targets: ["GotoSwiftClient"]
         ),
+        .executable(
+            name: "basic",
+            targets: ["BasicCLI"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "604.0.0-latest"),
@@ -45,6 +49,15 @@ let package = Package(
         // A client of the library, which is able to use the macro in its own code.
         .executableTarget(
             name: "GotoSwiftClient", 
+            dependencies: ["GotoSwift"],
+            swiftSettings: [
+                .enableUpcomingFeature("ApproachableConcurrency"),
+            ],
+        ),
+
+        // Standalone Retro BASIC REPL / CLI interpreter.
+        .executableTarget(
+            name: "BasicCLI",
             dependencies: ["GotoSwift"],
             swiftSettings: [
                 .enableUpcomingFeature("ApproachableConcurrency"),

@@ -174,9 +174,9 @@ Or add it directly in Xcode via **File > Add Package Dependencies...** using:
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Running
 
-Run the test suite (11 unit tests covering macro expansion, diagnostics, loop step verification, and runtime execution):
+Run the unit tests (12 tests covering macro expansion, diagnostics, loop step verification, and runtime execution):
 
 ```bash
 swift test
@@ -186,6 +186,39 @@ Run the example client:
 
 ```bash
 swift run GotoSwiftClient
+```
+
+### 🖥️ Launch the Interactive Retro BASIC REPL!
+
+Travel back to 1983 and write BASIC interactively in your terminal:
+
+```bash
+swift run basic
+```
+
+```text
+************************************************
+*                                              *
+*         64K RAM SYSTEM BASIC (1983)          *
+*             POWERED BY SWIFT 6               *
+*                                              *
+************************************************
+READY.
+> ? 2 + 3 * 4
+14
+READY.
+> 10 FOR I = 1 TO 3
+> 20 ? "HELLO FROM 1983! I="; I
+> 30 NEXT I
+> LIST
+10 FOR I = 1 TO 3
+20 ? "HELLO FROM 1983! I="; I
+30 NEXT I
+> RUN
+HELLO FROM 1983! I=1
+HELLO FROM 1983! I=2
+HELLO FROM 1983! I=3
+READY.
 ```
 
 ---
