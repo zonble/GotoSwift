@@ -9,24 +9,29 @@ class BasicInterpreter {
     var strVars: [String: String] = [:]
     var callStack: [Int] = []
 
-    struct ForState {
-        var end: Double
-        var step: Double
+    struct ForLoopRecord {
+        var varName: String
+        var forLine: Int
         var bodyLine: Int
+        var nextLine: Int
         var exitLine: Int
     }
-    var forStates: [String: ForState] = [:]
+    var forLoopsByForLine: [Int: ForLoopRecord] = [:]
+    var forLoopsByNextLine: [Int: ForLoopRecord] = [:]
+    var activeForLoops: [Int: (end: Double, step: Double)] = [:]
 
     func reset() {
         programLines.removeAll()
         clearVariables()
+        forLoopsByForLine.removeAll()
+        forLoopsByNextLine.removeAll()
     }
 
     func clearVariables() {
         numVars.removeAll()
         strVars.removeAll()
         callStack.removeAll()
-        forStates.removeAll()
+        activeForLoops.removeAll()
     }
 
     // MARK: - Normalization
@@ -226,7 +231,9 @@ class BasicInterpreter {
     }
 
     private func preScanForLoops(sortedLineNumbers: [Int]) {
-        forStates.removeAll()
+        forLoopsByForLine.removeAll()
+        forLoopsByNextLine.removeAll()
+        activeForLoops.removeAll()
         var forStack: [(varName: String, forLine: Int, bodyLine: Int)] = []
 
         for (idx, lineNum) in sortedLineNumbers.enumerated() {
@@ -245,7 +252,9 @@ class BasicInterpreter {
                 let reqVar = afterNext.isEmpty ? nil : normalizeVarName(afterNext).0
                 if let top = forStack.popLast() {
                     let v = reqVar ?? top.varName
-                    forStates[v] = ForState(end: 0, step: 1, bodyLine: top.bodyLine, exitLine: nextLineNum)
+                    let record = ForLoopRecord(varName: v, forLine: top.forLine, bodyLine: top.bodyLine, nextLine: lineNum, exitLine: nextLineNum)
+                    forLoopsByForLine[top.forLine] = record
+                    forLoopsByNextLine[lineNum] = record
                 }
             }
         }
@@ -308,7 +317,7 @@ class BasicInterpreter {
             return
         }
 
-        // FOR var = start TO end [STEP step]
+        // FOR v = start TO end [STEP s]
         if upper.hasPrefix("FOR ") {
             let afterFor = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
             if let eqIdx = afterFor.firstIndex(of: "=") {
@@ -329,12 +338,10 @@ class BasicInterpreter {
                     let stepVal = eval(stepPart).asDouble
 
                     numVars[v] = startVal
-                    if var state = forStates[v] {
-                        state.end = endVal
-                        state.step = stepVal
-                        forStates[v] = state
+                    if let curL = currentLine, let record = forLoopsByForLine[curL] {
+                        activeForLoops[record.forLine] = (end: endVal, step: stepVal)
                         if (stepVal > 0 && startVal > endVal) || (stepVal < 0 && startVal < endVal) {
-                            jumpTo = state.exitLine
+                            jumpTo = record.exitLine
                         }
                     }
                 }
@@ -345,12 +352,15 @@ class BasicInterpreter {
         // NEXT [var]
         if upper == "NEXT" || upper.hasPrefix("NEXT ") {
             let afterNext = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
-            let v = afterNext.isEmpty ? (forStates.keys.first ?? "") : normalizeVarName(afterNext).0
-            if let state = forStates[v] {
-                let cur = (numVars[v] ?? 0) + state.step
+            let reqVar = afterNext.isEmpty ? nil : normalizeVarName(afterNext).0
+
+            if let curL = currentLine, let record = forLoopsByNextLine[curL] {
+                let v = reqVar ?? record.varName
+                let (endVal, stepVal) = activeForLoops[record.forLine] ?? (0, 1)
+                let cur = (numVars[v] ?? 0) + stepVal
                 numVars[v] = cur
-                if (state.step > 0 && cur <= state.end) || (state.step < 0 && cur >= state.end) {
-                    jumpTo = state.bodyLine
+                if (stepVal > 0 && cur <= endVal) || (stepVal < 0 && cur >= endVal) {
+                    jumpTo = record.bodyLine
                 }
             }
             return
@@ -511,6 +521,76 @@ class BasicInterpreter {
         }
     }
 
+    // MARK: - File I/O (LOAD, SAVE, FILES)
+
+    func saveFile(_ pathArg: String) {
+        var filename = pathArg.trimmingCharacters(in: CharacterSet(charactersIn: "\" "))
+        if filename.isEmpty {
+            filename = "PROGRAM.BAS"
+        }
+        if !filename.contains(".") {
+            filename += ".BAS"
+        }
+        let sortedLines = programLines.keys.sorted()
+        let content = sortedLines.map { "\($0) \(programLines[$0]!)" }.joined(separator: "\n") + "\n"
+        do {
+            try content.write(toFile: filename, atomically: true, encoding: .utf8)
+            print("SAVED TO \(filename).")
+        } catch {
+            print("?FILE ERROR: \(error.localizedDescription)")
+        }
+    }
+
+    @discardableResult
+    func loadFile(_ pathArg: String, silent: Bool = false) -> Bool {
+        var filename = pathArg.trimmingCharacters(in: CharacterSet(charactersIn: "\" "))
+        if filename.isEmpty {
+            print("?MISSING FILE NAME")
+            return false
+        }
+        if !FileManager.default.fileExists(atPath: filename) && !filename.contains(".") {
+            if FileManager.default.fileExists(atPath: filename + ".BAS") {
+                filename += ".BAS"
+            } else if FileManager.default.fileExists(atPath: filename + ".bas") {
+                filename += ".bas"
+            }
+        }
+        guard let content = try? String(contentsOfFile: filename, encoding: .utf8) else {
+            print("?FILE NOT FOUND: \(filename)")
+            return false
+        }
+        reset()
+        let lines = content.components(separatedBy: .newlines)
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("#") || trimmed.hasPrefix("//") { continue }
+            let scanner = Scanner(string: trimmed)
+            var lineNum = 0
+            if scanner.scanInt(&lineNum) {
+                let rest = scanner.string[scanner.currentIndex...].trimmingCharacters(in: .whitespaces)
+                programLines[lineNum] = rest
+            }
+        }
+        if !silent {
+            print("LOADED \(filename) (\(programLines.count) LINES).")
+        }
+        return true
+    }
+
+    func listFiles() {
+        let currentPath = FileManager.default.currentDirectoryPath
+        if let files = try? FileManager.default.contentsOfDirectory(atPath: currentPath) {
+            let basFiles = files.filter { $0.hasSuffix(".bas") || $0.hasSuffix(".BAS") }.sorted()
+            if basFiles.isEmpty {
+                print("NO .BAS FILES FOUND IN CURRENT DIRECTORY.")
+            } else {
+                for f in basFiles {
+                    print("  \(f)")
+                }
+            }
+        }
+    }
+
     // MARK: - REPL Loop
 
     func startREPL() {
@@ -558,17 +638,37 @@ class BasicInterpreter {
                 print("READY.")
                 continue
             }
+            if upper == "FILES" || upper == "DIR" {
+                listFiles()
+                print("READY.")
+                continue
+            }
+            if upper.hasPrefix("SAVE") {
+                let arg = String(trimmed.dropFirst(4)).trimmingCharacters(in: .whitespaces)
+                saveFile(arg)
+                print("READY.")
+                continue
+            }
+            if upper.hasPrefix("LOAD") {
+                let arg = String(trimmed.dropFirst(4)).trimmingCharacters(in: .whitespaces)
+                loadFile(arg)
+                print("READY.")
+                continue
+            }
             if upper == "HELP" {
                 print("""
                 Commands:
-                  RUN             - Execute program
+                  RUN             - Execute program in memory
                   LIST            - Display program lines
+                  LOAD "file.bas" - Load program from disk
+                  SAVE "file.bas" - Save program to disk
+                  FILES           - List .bas files in current directory
                   NEW             - Clear program and memory
                   CLEAR           - Clear variables only
                   EXIT / QUIT     - Exit REPL
                   <line> <code    - Store/overwrite line
                   <line>          - Delete line
-                  <statement>     - Execute immediate command (e.g. PRINT 1+2)
+                  <statement>     - Execute immediate command (e.g. ? 1+2)
                 """)
                 print("READY.")
                 continue
@@ -607,4 +707,12 @@ class BasicInterpreter {
 // MARK: - Entry Point
 
 let interpreter = BasicInterpreter()
-interpreter.startREPL()
+
+if CommandLine.arguments.count > 1 {
+    let targetFile = CommandLine.arguments[1]
+    if interpreter.loadFile(targetFile, silent: true) {
+        interpreter.run()
+    }
+} else {
+    interpreter.startREPL()
+}

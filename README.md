@@ -221,6 +221,24 @@ HELLO FROM 1983! I=3
 READY.
 ```
 
+### 💾 File Commands & Running `.bas` Scripts
+
+You can save, load, and manage classic BASIC programs on disk:
+
+- **`SAVE "program.bas"`**: Save the current program lines in memory to a text file.
+- **`LOAD "program.bas"`**: Load program lines from disk into memory.
+- **`FILES` / `DIR`**: List `.bas` files in the current working directory.
+- **`NEW`**: Wipe program lines and variable state.
+- **`HELP`**: Show available interactive commands.
+
+#### Execute a `.bas` File Directly:
+
+Run vintage BASIC programs directly from your shell without entering the REPL:
+
+```bash
+swift run basic Examples/xmas.bas
+```
+
 ---
 
 ## 📄 License
