@@ -172,6 +172,15 @@ Or run the bundled demo file directly:
 swift run basic Examples/fan.bas
 ```
 
+#### 📐 Canvas Resolution & Coordinates
+
+| Feature | Details |
+|---|---|
+| **Pixel Resolution** | Default **80 × 50** dots (Customizable via `SCREEN width, height`) |
+| **Origin** | Top-left `(0, 0)` to bottom-right `(width - 1, height - 1)` with auto-clipping |
+| **Terminal Footprint** | Rendered with **Unicode Braille Patterns** (U+2800..U+28FF) where each character cell maps to a **2 × 4** dot matrix. Default 80×50 uses **40 columns × 13 rows** of terminal text! |
+| **Graphics Primitives** | `LINE (x1, y1)-(x2, y2)`, `LINE -(x2, y2), , B` (box), `BF` (filled box), `CIRCLE (cx, cy), r`, `PSET (x, y)`, `PRESET (x, y)` |
+
 ---
 
 ## 🛠 How It Works
@@ -202,7 +211,7 @@ Or add it directly in Xcode via **File > Add Package Dependencies...** using:
 
 ## 🧪 Testing & Running
 
-Run the unit tests (12 tests covering macro expansion, diagnostics, loop step verification, and runtime execution):
+Run the unit tests (13 tests covering macro expansion, diagnostics, screen control, loop step verification, and runtime execution):
 
 ```bash
 swift test
