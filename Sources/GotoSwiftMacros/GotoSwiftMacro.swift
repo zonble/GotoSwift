@@ -497,9 +497,10 @@ public struct BasicMacro: ExpressionMacro {
         for v in numVariables.sorted() {
             hoistedDecls.append("var \(v): Double = 0")
         }
-        for record in forLoopsByForLine.values.sorted(by: { $0.varName < $1.varName }) {
-            hoistedDecls.append("var _for_\(record.varName)_end: Double = 0")
-            hoistedDecls.append("var _for_\(record.varName)_step: Double = 1")
+        let forVarNames = Set(forLoopsByForLine.values.map { $0.varName })
+        for v in forVarNames.sorted() {
+            hoistedDecls.append("var _for_\(v)_end: Double = 0")
+            hoistedDecls.append("var _for_\(v)_step: Double = 1")
         }
         for v in strVariables.sorted() {
             hoistedDecls.append("var \(v): String = \"\"")
@@ -804,6 +805,9 @@ public struct BasicMacro: ExpressionMacro {
         }
 
         let hasTrailingSemicolon = argsStr.trimmingCharacters(in: .whitespaces).hasSuffix(";")
+        if parts.isEmpty {
+            return hasTrailingSemicolon ? "" : "print()"
+        }
         let partsJoined = parts.joined(separator: ", ")
 
         if hasTrailingSemicolon {

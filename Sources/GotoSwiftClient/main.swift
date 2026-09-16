@@ -66,3 +66,29 @@ print("\n=== Testing #basic FOR ... NEXT Loops ===")
 160 END
 """)
 
+print("\n=== Printing a Christmas Tree with #basic FOR ... NEXT! 🎄 ===")
+
+#basic("""
+10 REM === RETRO BASIC CHRISTMAS TREE ===
+20 LET H = 7
+30 FOR I = 1 TO H
+40   FOR S = 1 TO H - I
+50     PRINT " ";
+60   NEXT S
+70   FOR A = 1 TO 2 * I - 1
+80     PRINT "*";
+90   NEXT A
+100  PRINT ""
+110 NEXT I
+120 REM === TREE TRUNK ===
+130 FOR T = 1 TO 2
+140   FOR S = 1 TO H - 1
+150     PRINT " ";
+160   NEXT S
+170   PRINT "|"
+180 NEXT T
+190 PRINT "MERRY CHRISTMAS IN RETRO BASIC & SWIFT! 🎄"
+200 END
+""")
+
+
