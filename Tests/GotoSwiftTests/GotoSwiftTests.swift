@@ -300,5 +300,14 @@ final class GotoSwiftTests: XCTestCase {
         70 END
         """)
     }
+
+    func testRuntimeQuestionMarkPrint() {
+        #basic("""
+        10 ? "HELLO FROM QUESTION MARK!"
+        20 ? "ANSWER = "; 42
+        30 ?
+        40 END
+        """)
+    }
 }
 

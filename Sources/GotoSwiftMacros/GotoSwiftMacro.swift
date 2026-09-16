@@ -643,9 +643,14 @@ public struct BasicMacro: ExpressionMacro {
             }
         }
 
-        // PRINT
-        if trimmed.uppercased().hasPrefix("PRINT") {
-            let rest = trimmed.dropFirst(5).trimmingCharacters(in: .whitespaces)
+        // PRINT or ?
+        if trimmed.uppercased().hasPrefix("PRINT") || trimmed.hasPrefix("?") {
+            let rest: String
+            if trimmed.hasPrefix("?") {
+                rest = String(trimmed.dropFirst(1)).trimmingCharacters(in: .whitespaces)
+            } else {
+                rest = String(trimmed.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+            }
             if rest.isEmpty {
                 return "print()"
             }
