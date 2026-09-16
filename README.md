@@ -1,41 +1,49 @@
 # GotoSwift 🍝
 
-在 Swift 裡使用經典古早味的 **行號（Line Numbers）** 與 **`goto`**！
+Line numbers and `goto` in modern Swift, because you deserve the freedom to write spaghetti code in 2026.
 
-> "If you want to go back to 1980s BASIC inside modern Swift, look no further."
+> *"I don't know who would write line numbers in Swift, but I believe everyone deserves the freedom to do so."*  
+> — *GotoSwift Manifesto*
+>
+> *"Only those who understand GOTO truly understand programming."*
 
-GotoSwift 利用 Swift 巨集（Swift Macros）與 `swift-syntax`，在編譯時期將帶有行號與跳躍指令的程式碼，自動展開成狀態機迴圈：
+GotoSwift leverages **Swift Macros** and `swift-syntax` to bring back the golden age of 1980s BASIC into modern, type-safe Swift. At compile-time, it transforms your line-numbered code into a state machine loop:
 
 ```swift
-while true {
+_loop: while true {
     switch _line {
-    case 10: ...
-    case 20: ...
+    case 10:
+        ...
+        _line = 20
+        continue _loop
+    case 20:
+        ...
+    default:
+        break _loop
     }
 }
 ```
 
 ---
 
-## ✨ 特色
+## ✨ Features
 
-1. **`#gotoScope` 巨集**：
-   - 在合法的 Swift 語法區塊中書寫行號。
-   - 支援 `line(10)`、`L(10)` 或 `_10: do { ... }` 作為行號標籤。
-   - 支援 `goto(line)`、`gosub(line)`、`returnLine()` 與 `end()`。
-   - **自動變數提升（Variable Hoisting）**：在不同行宣告的 `var` 會被自動提升到迴圈外，跨行號共享變數狀態！
-   - **循序 Fallthrough**：依行號數值自動由小到大排序執行，未跳躍時自動前進到下一個行號。
-   - **編譯期檢查**：若跳躍到不存在的行號，編譯器直接報錯！
+- **`#gotoScope` (Native Swift Syntax)**:
+  - Write standard Swift statements with line numbers using `line(10)`, `L(10)`, or labeled blocks `_10: do { ... }`.
+  - Classic control flow: `goto(line)`, `gosub(line)`, `returnLine()`, and `end()`.
+  - **Automatic Variable Hoisting**: Variables declared across different line numbers (`var x = 0`) are automatically hoisted outside the loop, enabling seamless state sharing across jumps.
+  - **Sequential Fallthrough**: Lines execute in ascending order by line number. If a line doesn't jump, it naturally falls through to the next sorted line.
+  - **Compile-Time Diagnostics**: Jumping to a non-existent line number emits a compile error directly in Xcode / Swift compiler!
 
-2. **`#basic` 巨集**：
-   - 直接輸入多行字串，撰寫純粹的經典 BASIC 程式碼！
-   - 支援 `PRINT`、`LET`、`IF ... THEN GOTO`、`GOSUB`、`RETURN`、`END` 等指令。
+- **`#basic` (Vintage BASIC Syntax)**:
+  - Write vintage BASIC code directly inside a multiline string literal.
+  - Supports `LET`, `PRINT`, `IF ... THEN GOTO`, `GOSUB`, `RETURN`, `END`, and line-level comments (`REM`).
 
 ---
 
-## 🚀 範例展示
+## 🚀 Quick Start
 
-### 1. 使用 `#gotoScope`（Swift 語法）
+### 1. Using `#gotoScope`
 
 ```swift
 import GotoSwift
@@ -43,34 +51,34 @@ import GotoSwift
 #gotoScope {
     line(10)
     var count = 0
-    print("計數開始: \(count)")
+    print("Starting counter with count = \(count)")
 
     line(20)
     count += 1
-    print("目前計數: \(count)")
+    print("Count is now: \(count)")
     if count < 3 {
-        print("跳回第 20 行！")
+        print("Jumping back to line 20...")
         goto(20)
     }
 
     line(30)
-    print("呼叫副程式第 100 行...")
+    print("Calling subroutine at line 100...")
     gosub(100)
 
     line(35)
-    print("成功從副程式返回！")
+    print("Successfully returned from subroutine!")
 
     line(40)
-    print("結束主程式。")
+    print("Reached end of main program.")
     end()
 
     line(100)
-    print(">>> 這裡是副程式 (Line 100)")
+    print(">>> [Line 100] Hello from vintage subroutine!")
     returnLine()
 }
 ```
 
-### 2. 使用 `#basic`（純文字 BASIC 語法）
+### 2. Using `#basic`
 
 ```swift
 import GotoSwift
@@ -90,14 +98,48 @@ import GotoSwift
 
 ---
 
-## 🧪 測試與執行
+## 🛠 How It Works
 
-執行範例程式：
+Swift macros operate directly on the Abstract Syntax Tree (AST):
+
+1. **AST Parsing**: `#gotoScope` extracts the statements inside the closure, identifies line marker calls or label nodes, and partitions the code into discrete line blocks.
+2. **Variable Hoisting**: All `VariableDeclSyntax` nodes within cases are hoisted to the top of the closure, and converted into re-assignments inside each case block.
+3. **Control Flow Rewriting**: `goto(N)` calls are rewritten into `_line = N; continue _loop`. `gosub(N)` pushes the return line number onto `_callStack` before jumping.
+4. **Compile-Time Safety**: Jump targets are verified against the set of defined line numbers. An undefined target emits a compile-time diagnostic.
+
+---
+
+## 📦 Installation
+
+Add **GotoSwift** to your `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/zonble/GotoSwift.git", from: "1.0.0"),
+]
+```
+
+Or add it directly in Xcode via **File > Add Package Dependencies...** using:
+`https://github.com/zonble/GotoSwift.git`
+
+---
+
+## 🧪 Testing
+
+Run the test suite (8 tests covering macro expansion, diagnostics, and runtime execution):
+
+```bash
+swift test
+```
+
+Run the example client:
+
 ```bash
 swift run GotoSwiftClient
 ```
 
-執行單元測試：
-```bash
-swift test
-```
+---
+
+## 📄 License
+
+MIT License. Feel free to use it to confuse your colleagues, write vintage games, or protest structured programming.
