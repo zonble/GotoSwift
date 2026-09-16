@@ -33,17 +33,22 @@ _loop: while true {
   - Classic control flow: `goto(line)`, `gosub(line)`, `returnLine()`, and `end()`.
   - **Automatic Variable Hoisting**: Variables declared across different line numbers (`var x = 0`) are automatically hoisted outside the loop, enabling seamless state sharing across jumps.
   - **Sequential Fallthrough**: Lines execute in ascending order by line number. If a line doesn't jump, it naturally falls through to the next sorted line.
+  - **Authentic 1980s Line Editing**:
+    - Re-declaring an existing line number **overwrites** the previous definition.
+    - Declaring an empty line number **deletes** that line from the program!
   - **Compile-Time Diagnostics**: Jumping to a non-existent line number emits a compile error directly in Xcode / Swift compiler!
 
 - **`#basic` (Vintage BASIC Syntax)**:
   - Write vintage BASIC code directly inside a multiline string literal.
-  - Supports `LET`, `PRINT`, `IF ... THEN GOTO`, `GOSUB`, `RETURN`, `END`, and line-level comments (`REM`).
+  - Supports `LET`, `PRINT` (and the legendary `?` shorthand), `IF ... THEN GOTO`, `GOSUB`, `RETURN`, and `END`.
+  - **`FOR ... NEXT` Loops**: Full support for loops, `STEP` increments/decrements (including negative step countdowns), and nested loops!
+  - **Vintage Line Overwrite & Deletion**: Enter the same line number to overwrite, or a line number with empty content to delete it.
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Using `#gotoScope`
+### 1. Using `#gotoScope` (Swift Syntax)
 
 ```swift
 import GotoSwift
@@ -78,22 +83,66 @@ import GotoSwift
 }
 ```
 
-### 2. Using `#basic`
+### 2. Using `#basic` with `?`, `FOR ... NEXT`, and Subroutines
 
 ```swift
 import GotoSwift
 
 #basic("""
-10 LET X = 1
-20 PRINT "BASIC COUNT: "; X
-30 LET X = X + 1
-40 IF X <= 3 THEN GOTO 20
-50 GOSUB 100
-60 PRINT "BASIC PROGRAM FINISHED"
-70 END
-100 PRINT "HELLO FROM BASIC SUBROUTINE!"
+10 ? "HELLO FROM RETRO BASIC!"
+20 LET X = 1
+30 ? "COUNT: "; X
+40 LET X = X + 1
+50 IF X <= 3 THEN GOTO 30
+60 GOSUB 100
+70 ? "PROGRAM FINISHED"
+80 END
+100 ? "HELLO FROM SUBROUTINE!"
 110 RETURN
 """)
+```
+
+### 3. Printing a Christmas Tree with Nested `FOR ... NEXT`! 🎄
+
+```swift
+import GotoSwift
+
+#basic("""
+10 REM === RETRO BASIC CHRISTMAS TREE ===
+20 LET H = 7
+30 FOR I = 1 TO H
+40   FOR S = 1 TO H - I
+50     ? " ";
+60   NEXT S
+70   FOR A = 1 TO 2 * I - 1
+80     ? "*";
+90   NEXT A
+100  ? ""
+110 NEXT I
+120 REM === TREE TRUNK ===
+130 FOR T = 1 TO 2
+140   FOR S = 1 TO H - 1
+150     ? " ";
+160   NEXT S
+170   ? "|"
+180 NEXT T
+190 ? "MERRY CHRISTMAS IN RETRO BASIC & SWIFT! 🎄"
+200 END
+""")
+```
+
+Output:
+```text
+      *
+     ***
+    *****
+   *******
+  *********
+ ***********
+*************
+      |
+      |
+MERRY CHRISTMAS IN RETRO BASIC & SWIFT! 🎄
 ```
 
 ---
@@ -126,7 +175,7 @@ Or add it directly in Xcode via **File > Add Package Dependencies...** using:
 
 ## 🧪 Testing
 
-Run the test suite (8 tests covering macro expansion, diagnostics, and runtime execution):
+Run the test suite (11 unit tests covering macro expansion, diagnostics, loop step verification, and runtime execution):
 
 ```bash
 swift test
