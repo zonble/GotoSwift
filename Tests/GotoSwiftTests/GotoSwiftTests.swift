@@ -3,6 +3,7 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
+import GotoSwift
 
 #if canImport(GotoSwiftMacros)
 import GotoSwiftMacros
@@ -35,7 +36,7 @@ final class GotoSwiftTests: XCTestCase {
                 var x = 1
                 var _line: Int = 10
                 var _callStack: [Int] = []
-                _ = _callStack
+                _callStack.removeAll()
                 _loop: while true {
                     switch _line {
                 case 10:
@@ -83,7 +84,7 @@ final class GotoSwiftTests: XCTestCase {
             {
                 var _line: Int = 10
                 var _callStack: [Int] = []
-                _ = _callStack
+                _callStack.removeAll()
                 _loop: while true {
                     switch _line {
                 case 10:
@@ -119,7 +120,7 @@ final class GotoSwiftTests: XCTestCase {
             {
                 var _line: Int = 10
                 var _callStack: [Int] = []
-                _ = _callStack
+                _callStack.removeAll()
                 _loop: while true {
                     switch _line {
                 case 10:
@@ -158,7 +159,7 @@ final class GotoSwiftTests: XCTestCase {
                 var X: Double = 0
                 var _line: Int = 10
                 var _callStack: [Int] = []
-                _ = _callStack
+                _callStack.removeAll()
                 _loop: while true {
                     switch _line {
                 case 10:
@@ -207,7 +208,7 @@ final class GotoSwiftTests: XCTestCase {
             {
                 var _line: Int = 10
                 var _callStack: [Int] = []
-                _ = _callStack
+                _callStack.removeAll()
                 _loop: while true {
                     switch _line {
                 case 10:
@@ -228,4 +229,64 @@ final class GotoSwiftTests: XCTestCase {
         throw XCTSkip("macros are only supported when running tests for the host platform")
         #endif
     }
+
+    // MARK: - End-to-End Runtime Execution Tests
+
+    func testRuntimeGotoExecution() {
+        var trace: [Int] = []
+        var finalCount = 0
+
+        #gotoScope {
+            line(10)
+            var count = 0
+            trace.append(10)
+
+            line(20)
+            count += 1
+            trace.append(20)
+            if count < 3 {
+                goto(20)
+            }
+
+            line(30)
+            trace.append(30)
+            finalCount = count
+        }
+
+        XCTAssertEqual(trace, [10, 20, 20, 20, 30])
+        XCTAssertEqual(finalCount, 3)
+    }
+
+    func testRuntimeSubroutineExecution() {
+        var trace: [String] = []
+
+        #gotoScope {
+            line(10)
+            trace.append("start")
+
+            line(20)
+            trace.append("calling-sub")
+            gosub(100)
+
+            line(30)
+            trace.append("returned-from-sub")
+            end()
+
+            line(100)
+            trace.append("in-sub")
+            returnLine()
+        }
+
+        XCTAssertEqual(trace, ["start", "calling-sub", "in-sub", "returned-from-sub"])
+    }
+
+    func testRuntimeBasicExecution() {
+        #basic("""
+        10 LET X = 10
+        20 LET Y = 20
+        30 PRINT "X + Y = "; X + Y
+        40 END
+        """)
+    }
 }
+

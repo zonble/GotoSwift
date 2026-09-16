@@ -193,7 +193,7 @@ public struct GotoScopeMacro: ExpressionMacro {
         {
         \(raw: hoistedSection)    var _line: Int = \(raw: String(firstLine))
             var _callStack: [Int] = []
-            _ = _callStack
+            _callStack.removeAll()
             _loop: while true {
                 switch _line {
         \(raw: allCases)
@@ -446,7 +446,7 @@ public struct BasicMacro: ExpressionMacro {
         {
         \(raw: hoistedSection)    var _line: Int = \(raw: String(firstLine))
             var _callStack: [Int] = []
-            _ = _callStack
+            _callStack.removeAll()
             _loop: while true {
                 switch _line {
         \(raw: allCases)

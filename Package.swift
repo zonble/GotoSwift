@@ -55,6 +55,7 @@ let package = Package(
         .testTarget(
             name: "GotoSwiftTests",
             dependencies: [
+                "GotoSwift",
                 "GotoSwiftMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ],
