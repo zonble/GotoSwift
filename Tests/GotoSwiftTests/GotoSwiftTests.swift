@@ -309,5 +309,39 @@ final class GotoSwiftTests: XCTestCase {
         40 END
         """)
     }
+
+    func testVintageLineOverwriteAndDeletion() {
+        var trace: [Int] = []
+
+        #gotoScope {
+            line(10)
+            trace.append(1)
+
+            // Overwrite line 10!
+            line(10)
+            trace.append(10)
+
+            // Line 20 will be defined then deleted!
+            line(20)
+            trace.append(20)
+
+            line(20) // Empty statement deletes line 20!
+
+            line(30)
+            trace.append(30)
+            end()
+        }
+
+        XCTAssertEqual(trace, [10, 30])
+
+        #basic("""
+        10 LET X = 1
+        10 LET X = 99
+        20 LET Y = 500
+        20
+        25 ? "X = "; X
+        30 END
+        """)
+    }
 }
 

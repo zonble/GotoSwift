@@ -69,8 +69,14 @@ public struct GotoScopeMacro: ExpressionMacro {
         func flushCurrentLine() {
             if let lineNum = currentLineNumber {
                 if let index = lines.firstIndex(where: { $0.number == lineNum }) {
-                    lines[index].statements.append(contentsOf: currentStatements)
-                } else {
+                    if currentStatements.isEmpty {
+                        // Empty line deletes the existing line
+                        lines.remove(at: index)
+                    } else {
+                        // Re-defining a line overwrites the previous definition
+                        lines[index].statements = currentStatements
+                    }
+                } else if !currentStatements.isEmpty {
                     lines.append(LineInfo(number: lineNum, statements: currentStatements))
                 }
             } else if !currentStatements.isEmpty {
@@ -372,7 +378,17 @@ public struct BasicMacro: ExpressionMacro {
             var lineNum: Int = 0
             if scanner.scanInt(&lineNum) {
                 let rest = scanner.string[scanner.currentIndex...].trimmingCharacters(in: .whitespaces)
-                lines.append(BasicLine(number: lineNum, rawCode: rest))
+                if let existingIndex = lines.firstIndex(where: { $0.number == lineNum }) {
+                    if rest.isEmpty {
+                        // Vintage BASIC: typing just the line number deletes the line!
+                        lines.remove(at: existingIndex)
+                    } else {
+                        // Vintage BASIC: re-typing a line number overwrites the old line!
+                        lines[existingIndex] = BasicLine(number: lineNum, rawCode: rest)
+                    }
+                } else if !rest.isEmpty {
+                    lines.append(BasicLine(number: lineNum, rawCode: rest))
+                }
             } else {
                 context.diagnose(
                     Diagnostic(
